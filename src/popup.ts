@@ -2,7 +2,6 @@ import App from './popup.vue';
 import { createApp } from 'vue';
 import 'vuetify/styles';
 import { createVuetify } from 'vuetify';
-import colors from 'vuetify/lib/util/colors.mjs';
 
 const vuetify = createVuetify({
     theme: {
@@ -11,17 +10,17 @@ const vuetify = createVuetify({
             fakeTab: {
                 dark: false,
                 colors: {
-                    background: '#fff5f5',
+                    background: '#f8fafc',
                     surface: '#ffffff',
-                    primary: colors.red.base,
-                    secondary: colors.red.lighten4,
-                    accent: colors.red.darken3,
-                    error: colors.red.darken4,
+                    primary: '#e11d48',
+                    secondary: '#ffe4e6',
+                    accent: '#0f766e',
+                    error: '#be123c',
                     info: '#2563eb',
-                    success: colors.red.base,
+                    success: '#0f766e',
                     warning: '#d97706',
                     'on-primary': '#ffffff',
-                    'on-surface': '#2b1111',
+                    'on-surface': '#111827',
                 },
             },
         },
