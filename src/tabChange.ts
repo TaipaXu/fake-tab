@@ -5,8 +5,57 @@ export type TabChange = {
     title?: string;
 };
 
+export type TabPresetTemplate = {
+    icon: string;
+    id: string;
+    label: string;
+    title: string;
+};
+
+export const tabPresetTemplates = [
+    {
+        id: 'google',
+        label: 'Google',
+        title: 'Google',
+        icon: 'https://www.google.com/favicon.ico',
+    },
+    {
+        id: 'gmail',
+        label: 'Gmail',
+        title: 'Inbox (3) - Gmail',
+        icon: 'https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico',
+    },
+    {
+        id: 'github',
+        label: 'GitHub',
+        title: 'GitHub',
+        icon: 'https://github.com/favicon.ico',
+    },
+    {
+        id: 'docs',
+        label: 'Docs',
+        title: 'Untitled document - Google Docs',
+        icon: 'https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico',
+    },
+    {
+        id: 'calendar',
+        label: 'Calendar',
+        title: 'Google Calendar',
+        icon: 'https://calendar.google.com/googlecalendar/images/favicons_2020q4/calendar_31.ico',
+    },
+    {
+        id: 'slack',
+        label: 'Slack',
+        title: 'Slack',
+        icon: 'https://a.slack-edge.com/80588/marketing/img/meta/favicon-32.png',
+    },
+] as const satisfies readonly TabPresetTemplate[];
+
+export type TabPresetId = (typeof tabPresetTemplates)[number]['id'];
+
 export type PersistedTabChange = TabChange & {
     origin?: string;
+    presetId?: TabPresetId;
 };
 
 type PersistedTabChanges = Record<string, PersistedTabChange>;
@@ -16,6 +65,9 @@ const persistedTabChangesStorageKey = 'fakeTabPersistentChanges';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isTabPresetId = (value: unknown): value is TabPresetId =>
+    typeof value === 'string' && tabPresetTemplates.some((template) => template.id === value);
 
 const getStorageArea = (): StorageArea => {
     const storage = chrome.storage as typeof chrome.storage & {
@@ -45,6 +97,10 @@ const normalizeTabChange = (value: unknown): PersistedTabChange | undefined => {
 
     if (typeof value.origin === 'string') {
         change.origin = value.origin;
+    }
+
+    if (isTabPresetId(value.presetId)) {
+        change.presetId = value.presetId;
     }
 
     return hasTabChange ? change : undefined;
@@ -188,6 +244,35 @@ export const applyTabChange = (change: unknown, fallbackOriginal?: TabChange) =>
     };
     const applyIconChange = (icon: string) => {
         const originalState = fakeTabDocument[originalTabStateKey];
+        const getIconType = (iconUrl: string) => {
+            if (iconUrl.startsWith('data:image/svg+xml')) {
+                return 'image/svg+xml';
+            }
+
+            if (iconUrl.startsWith('data:image/png')) {
+                return 'image/png';
+            }
+
+            try {
+                const path = new URL(iconUrl, document.baseURI).pathname.toLowerCase();
+
+                if (path.endsWith('.svg')) {
+                    return 'image/svg+xml';
+                }
+
+                if (path.endsWith('.png')) {
+                    return 'image/png';
+                }
+
+                if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+                    return 'image/jpeg';
+                }
+            } catch {
+                return 'image/x-icon';
+            }
+
+            return 'image/x-icon';
+        };
 
         if (!originalState) {
             return;
@@ -204,7 +289,7 @@ export const applyTabChange = (change: unknown, fallbackOriginal?: TabChange) =>
         link.rel = 'icon';
 
         if (icon) {
-            link.type = 'image/x-icon';
+            link.type = getIconType(icon);
             link.href = icon;
         } else {
             link.type = 'image/svg+xml';

@@ -8,6 +8,30 @@
         </header>
 
         <v-form class="popup__form" @submit.prevent="changeTab">
+            <section class="popup__templates" aria-label="Preset templates">
+                <div class="popup__section-title">Presets</div>
+
+                <div class="popup__template-grid">
+                    <button
+                    v-for="template in tabPresetTemplates"
+                    :key="template.id"
+                    type="button"
+                    class="popup__template-button"
+                    :class="{
+                        'popup__template-button--active': selectedPresetId === template.id,
+                    }"
+                    :aria-label="`Apply ${template.label} preset`"
+                    :aria-pressed="selectedPresetId === template.id"
+                    :disabled="activeTabId === undefined || isApplying"
+                    @click="applyTemplate(template)">
+                        <span class="popup__template-icon" aria-hidden="true">
+                            <v-img :src="template.icon" width="18" height="18" cover />
+                        </span>
+                        <span class="popup__template-label">{{ template.label }}</span>
+                    </button>
+                </div>
+            </section>
+
             <v-text-field
             v-model="originalIcon"
             label="Icon URL"
@@ -52,6 +76,7 @@
                 variant="outlined"
                 color="primary"
                 class="popup__reset-button"
+                :disabled="isApplying"
                 @click="resetTab">Reset</v-btn>
 
                 <v-btn
@@ -59,14 +84,15 @@
                 size="small"
                 variant="flat"
                 color="primary"
-                class="popup__submit-button">Apply changes</v-btn>
+                class="popup__submit-button"
+                :disabled="isApplying">Apply changes</v-btn>
             </div>
         </v-form>
     </v-container>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import browser from 'webextension-polyfill';
 
 import {
@@ -76,6 +102,8 @@ import {
     removePersistedTabChange,
     resetChangeInTab,
     setPersistedTabChange,
+    tabPresetTemplates,
+    type TabPresetId,
     type TabChange,
 } from './tabChange';
 
@@ -87,6 +115,9 @@ const persistTab = ref(false);
 const persistTabTouched = ref(false);
 const activeTabId = ref<number>();
 const activeTabOrigin = ref<string>();
+const isApplying = ref(false);
+
+type TabPresetTemplateItem = (typeof tabPresetTemplates)[number];
 
 type PageTabInfo = {
     icon?: string;
@@ -104,6 +135,13 @@ const getFormTabChange = () => {
 
     return change;
 };
+
+const getMatchingPresetId = (change: TabChange): TabPresetId | undefined =>
+    tabPresetTemplates.find(
+        (template) => template.title === change.title && template.icon === change.icon,
+    )?.id;
+
+const selectedPresetId = computed(() => getMatchingPresetId(getFormTabChange()));
 
 const getPageTabChange = () => {
     const change: TabChange = {};
@@ -211,27 +249,50 @@ const getTabInfo = async () => {
 
 void getTabInfo();
 
-const changeTab = async () => {
+const commitTabChange = async (change: TabChange, presetId = getMatchingPresetId(change)) => {
     const tabId = activeTabId.value;
+    const origin = activeTabOrigin.value;
 
     if (tabId === undefined) {
         return;
     }
 
-    const change = getFormTabChange();
-    const shouldPersist = persistTab.value && Boolean(activeTabOrigin.value);
+    const shouldPersist = persistTab.value && Boolean(origin);
 
-    await applyChangeToTab(tabId, change, getPageTabChange());
+    isApplying.value = true;
 
-    if (shouldPersist) {
-        await setPersistedTabChange(tabId, {
-            ...change,
-            origin: activeTabOrigin.value,
-        });
-        return;
+    try {
+        await applyChangeToTab(tabId, change, getPageTabChange());
+
+        if (shouldPersist && origin) {
+            await setPersistedTabChange(tabId, {
+                ...change,
+                origin,
+                ...(presetId ? { presetId } : {}),
+            });
+            return;
+        }
+
+        await removePersistedTabChange(tabId).catch(() => undefined);
+    } finally {
+        isApplying.value = false;
     }
+};
 
-    await removePersistedTabChange(tabId).catch(() => undefined);
+const changeTab = async () => {
+    await commitTabChange(getFormTabChange(), selectedPresetId.value);
+};
+
+const applyTemplate = async (template: TabPresetTemplateItem) => {
+    const change = {
+        title: template.title,
+        icon: template.icon,
+    };
+
+    originalTitle.value = change.title;
+    originalIcon.value = change.icon;
+
+    await commitTabChange(change, template.id);
 };
 
 const resetTab = async () => {
@@ -241,11 +302,17 @@ const resetTab = async () => {
         return;
     }
 
-    await removePersistedTabChange(tabId).catch(() => undefined);
-    persistTab.value = false;
-    persistTabTouched.value = false;
-    await resetChangeInTab(tabId).catch(() => false);
-    await getTabInfo();
+    isApplying.value = true;
+
+    try {
+        await removePersistedTabChange(tabId).catch(() => undefined);
+        persistTab.value = false;
+        persistTabTouched.value = false;
+        await resetChangeInTab(tabId).catch(() => false);
+        await getTabInfo();
+    } finally {
+        isApplying.value = false;
+    }
 };
 </script>
 
@@ -319,6 +386,81 @@ body {
         display: grid;
         gap: 8px;
         padding: 12px;
+    }
+
+    &__templates {
+        display: grid;
+        gap: 6px;
+    }
+
+    &__section-title {
+        color: rgb(var(--v-theme-muted));
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1;
+        text-transform: uppercase;
+    }
+
+    &__template-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    &__template-button {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        min-width: 0;
+        min-height: 32px;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 7px;
+        border: 1px solid rgb(var(--v-theme-border));
+        border-radius: 6px;
+        background: rgb(var(--v-theme-surface));
+        color: rgb(var(--v-theme-on-surface));
+        cursor: pointer;
+        font: inherit;
+        font-size: 12px;
+        text-align: left;
+        transition:
+            background-color 160ms ease,
+            border-color 160ms ease,
+            box-shadow 160ms ease;
+
+        &:hover:not(:disabled) {
+            border-color: rgb(var(--v-theme-primary));
+            background: rgba(var(--v-theme-primary), 0.06);
+        }
+
+        &:disabled {
+            cursor: default;
+            opacity: 0.58;
+        }
+
+        &--active {
+            border-color: rgb(var(--v-theme-primary));
+            box-shadow: 0 0 0 2px rgb(var(--v-theme-secondary));
+        }
+    }
+
+    &__template-icon {
+        display: inline-flex;
+        width: 18px;
+        height: 18px;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 4px;
+    }
+
+    &__template-label {
+        min-width: 0;
+        overflow: hidden;
+        font-weight: 650;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     &__field {
