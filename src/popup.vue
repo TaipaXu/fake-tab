@@ -101,9 +101,7 @@ const getFormTabChange = () => {
         change.title = originalTitle.value;
     }
 
-    if (typeof originalIcon.value === 'string') {
-        change.icon = originalIcon.value;
-    }
+    change.icon = typeof originalIcon.value === 'string' ? originalIcon.value : '';
 
     return change;
 };
@@ -128,11 +126,17 @@ const readPageTabInfo = (): PageTabInfo => {
         'link[rel="shortcut icon"]',
         'link[rel="apple-touch-icon"]',
     ].join(',');
+    const emptyIcon = document.querySelector('link[data-fake-tab-empty-icon]');
     const icon = document.querySelector<HTMLLinkElement>(iconSelector)?.href;
     const info: PageTabInfo = {};
 
     if (document.title) {
         info.title = document.title;
+    }
+
+    if (emptyIcon) {
+        info.icon = '';
+        return info;
     }
 
     if (icon) {
@@ -161,10 +165,11 @@ const getPageTabInfo = async (tabId: number, currentTab: browser.Tabs.Tab) => {
             func: readPageTabInfo,
         });
         const result = pageInfo?.result as PageTabInfo | undefined;
+        const hasPageIcon = Object.prototype.hasOwnProperty.call(result ?? {}, 'icon');
 
         return {
             title: tabInfo.title ?? result?.title,
-            icon: tabInfo.icon ?? result?.icon,
+            icon: hasPageIcon ? result?.icon : tabInfo.icon,
         };
     } catch {
         return tabInfo;

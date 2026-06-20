@@ -148,6 +148,8 @@ export const applyTabChange = (change: unknown, fallbackOriginal?: TabChange) =>
     const originalTabStateKey = '__fakeTabOriginalState';
     type LinkAttributeSnapshot = Array<[string, string]>;
     type OriginalTabState = {
+        applyingIconChange?: boolean;
+        iconObserver?: MutationObserver;
         iconLinks: LinkAttributeSnapshot[];
         title: string;
     };
@@ -155,13 +157,18 @@ export const applyTabChange = (change: unknown, fallbackOriginal?: TabChange) =>
         [originalTabStateKey]?: OriginalTabState;
     };
     const fakeTabDocument = document as FakeTabDocument;
+    const iconLinkSelector = [
+        'link[rel~="icon" i]',
+        'link[rel~="apple-touch-icon" i]',
+        'link[rel~="mask-icon" i]',
+    ].join(',');
     const captureOriginalTabState = () => {
         if (fakeTabDocument[originalTabStateKey]) {
             return;
         }
 
         const iconLinks = Array.from(
-            document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]'),
+            document.querySelectorAll<HTMLLinkElement>(iconLinkSelector),
             (link) =>
                 Array.from(link.attributes, ({ name, value }) => [name, value] as [string, string]),
         );
@@ -178,6 +185,71 @@ export const applyTabChange = (change: unknown, fallbackOriginal?: TabChange) =>
             title: document.title || fallbackOriginal?.title || '',
         };
     };
+    const isIconLinkNode = (node: Node) =>
+        node instanceof HTMLLinkElement && node.matches(iconLinkSelector);
+    const hasIconLinkNode = (node: Node): boolean => {
+        if (isIconLinkNode(node)) {
+            return true;
+        }
+
+        return node instanceof Element && Boolean(node.querySelector(iconLinkSelector));
+    };
+    const applyIconChange = (icon: string) => {
+        const originalState = fakeTabDocument[originalTabStateKey];
+
+        if (!originalState) {
+            return;
+        }
+
+        originalState.iconObserver?.disconnect();
+        originalState.applyingIconChange = true;
+
+        for (const iconLink of document.querySelectorAll<HTMLLinkElement>(iconLinkSelector)) {
+            iconLink.remove();
+        }
+
+        const link = document.createElement('link');
+        link.rel = 'icon';
+
+        if (icon) {
+            link.type = 'image/x-icon';
+            link.href = icon;
+        } else {
+            link.type = 'image/svg+xml';
+            link.href =
+                'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22/%3E';
+            link.setAttribute('data-fake-tab-empty-icon', 'true');
+        }
+
+        document.head.appendChild(link);
+        originalState.applyingIconChange = false;
+
+        originalState.iconObserver = new MutationObserver((mutations) => {
+            if (
+                originalState.applyingIconChange ||
+                !mutations.some((mutation) => {
+                    if (mutation.type === 'attributes') {
+                        return isIconLinkNode(mutation.target);
+                    }
+
+                    return (
+                        Array.from(mutation.addedNodes).some(hasIconLinkNode) ||
+                        Array.from(mutation.removedNodes).some(hasIconLinkNode)
+                    );
+                })
+            ) {
+                return;
+            }
+
+            applyIconChange(icon);
+        });
+        originalState.iconObserver.observe(document.head, {
+            attributeFilter: ['href', 'rel', 'type'],
+            attributes: true,
+            childList: true,
+            subtree: true,
+        });
+    };
     const tabChange = change as { icon?: unknown; title?: unknown };
 
     captureOriginalTabState();
@@ -186,26 +258,19 @@ export const applyTabChange = (change: unknown, fallbackOriginal?: TabChange) =>
         document.title = tabChange.title;
     }
 
-    if (typeof tabChange.icon !== 'string' || !tabChange.icon) {
+    if (typeof tabChange.icon !== 'string') {
         return;
     }
 
-    const link = document.createElement('link');
-    link.rel = 'icon';
-    link.type = 'image/x-icon';
-    link.href = tabChange.icon;
-
-    for (const iconLink of document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')) {
-        iconLink.remove();
-    }
-
-    document.head.appendChild(link);
+    applyIconChange(tabChange.icon);
 };
 
 export const resetTabChange = () => {
     const originalTabStateKey = '__fakeTabOriginalState';
     type LinkAttributeSnapshot = Array<[string, string]>;
     type OriginalTabState = {
+        applyingIconChange?: boolean;
+        iconObserver?: MutationObserver;
         iconLinks: LinkAttributeSnapshot[];
         title: string;
     };
@@ -228,9 +293,16 @@ export const resetTabChange = () => {
         return false;
     }
 
+    originalState.iconObserver?.disconnect();
     document.title = originalState.title;
 
-    for (const iconLink of document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')) {
+    const iconLinkSelector = [
+        'link[rel~="icon" i]',
+        'link[rel~="apple-touch-icon" i]',
+        'link[rel~="mask-icon" i]',
+    ].join(',');
+
+    for (const iconLink of document.querySelectorAll<HTMLLinkElement>(iconLinkSelector)) {
         iconLink.remove();
     }
 

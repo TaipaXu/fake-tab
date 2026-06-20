@@ -5,9 +5,31 @@ import {
     getPersistedTabChange,
     isPersistedTabChangeForUrl,
     removePersistedTabChange,
+    type PersistedTabChange,
 } from './tabChange';
 
-const reapplyPersistedTabChange = async (tabId: number, tab: browser.Tabs.Tab) => {
+const isEmptyTabIconUrl = (url?: string) =>
+    typeof url === 'string' &&
+    url.startsWith('data:image/svg+xml') &&
+    url.includes('width=%2216%22') &&
+    url.includes('height=%2216%22');
+
+const isPersistedIconAlreadyApplied = (
+    change: PersistedTabChange,
+    favIconUrl: string | undefined,
+) => {
+    if (typeof change.icon !== 'string' || favIconUrl === undefined) {
+        return false;
+    }
+
+    return change.icon ? favIconUrl === change.icon : isEmptyTabIconUrl(favIconUrl);
+};
+
+const reapplyPersistedTabChange = async (
+    tabId: number,
+    tab: browser.Tabs.Tab,
+    changedFavIconUrl?: string,
+) => {
     const change = await getPersistedTabChange(tabId);
 
     if (!change) {
@@ -19,6 +41,10 @@ const reapplyPersistedTabChange = async (tabId: number, tab: browser.Tabs.Tab) =
         return;
     }
 
+    if (isPersistedIconAlreadyApplied(change, changedFavIconUrl)) {
+        return;
+    }
+
     await applyChangeToTab(tabId, change, {
         icon: tab.favIconUrl,
         title: tab.title,
@@ -26,11 +52,11 @@ const reapplyPersistedTabChange = async (tabId: number, tab: browser.Tabs.Tab) =
 };
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status !== 'complete') {
+    if (changeInfo.status !== 'complete' && changeInfo.favIconUrl === undefined) {
         return;
     }
 
-    void reapplyPersistedTabChange(tabId, tab).catch(() => undefined);
+    void reapplyPersistedTabChange(tabId, tab, changeInfo.favIconUrl).catch(() => undefined);
 });
 
 browser.tabs.onRemoved.addListener((tabId) => {
