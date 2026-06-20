@@ -19,7 +19,7 @@ Modify browser tab page icon and title, hide the website you are currently brows
 ## Runtime
 
 - Node.js: `24.17.0`
-- Package manager: `pnpm@11.5.2`
+- Package manager: `pnpm@11.8.0`
 - Vite+ reads these settings from `package.json`.
 
 First-time runtime setup:
