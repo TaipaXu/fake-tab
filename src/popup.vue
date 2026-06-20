@@ -224,27 +224,19 @@ const changeTab = async () => {
 
 <style lang="scss">
 :root {
-    color-scheme: light;
-    --ft-primary: #e11d48;
-    --ft-primary-dark: #be123c;
-    --ft-primary-soft: #ffe4e6;
-    --ft-background: #f8fafc;
-    --ft-surface: #ffffff;
-    --ft-border: #e2e8f0;
-    --ft-muted: #64748b;
-    --ft-text: #111827;
+    color-scheme: light dark;
 }
 
 html,
 body {
     margin: 0;
-    background: var(--ft-background);
+    background: rgb(var(--v-theme-background));
 }
 
 #app {
     width: 300px;
-    background: var(--ft-background);
-    color: var(--ft-text);
+    background: rgb(var(--v-theme-background));
+    color: rgb(var(--v-theme-on-surface));
     font-family:
         Inter,
         ui-sans-serif,
@@ -258,7 +250,7 @@ body {
 .popup-shell {
     padding: 0;
     overflow: hidden;
-    background: var(--ft-background);
+    background: rgb(var(--v-theme-background));
 }
 
 .popup-header {
@@ -267,8 +259,8 @@ body {
     gap: 8px;
     min-height: 40px;
     padding: 7px 12px;
-    background: var(--ft-primary);
-    color: #ffffff;
+    background: rgb(var(--v-theme-primary));
+    color: rgb(var(--v-theme-on-primary));
 }
 
 .brand-icon-wrap {
@@ -279,7 +271,7 @@ body {
     justify-content: center;
     flex: 0 0 24px;
     border-radius: 6px;
-    background: rgb(255 255 255 / 16%);
+    background: rgba(var(--v-theme-on-primary), 0.16);
 }
 
 .brand-icon {
@@ -313,7 +305,7 @@ body {
     align-items: center;
     gap: 8px;
     width: fit-content;
-    color: var(--ft-text);
+    color: rgb(var(--v-theme-on-surface));
     cursor: pointer;
     font-size: 12px;
     user-select: none;
@@ -323,7 +315,7 @@ body {
     width: 15px;
     height: 15px;
     margin: 0;
-    accent-color: var(--ft-primary);
+    accent-color: rgb(var(--v-theme-primary));
     cursor: pointer;
 }
 
@@ -336,13 +328,13 @@ body {
     overflow: hidden;
     margin-left: -2px;
     margin-right: 0;
-    border: 1px solid var(--ft-border);
+    border: 1px solid rgb(var(--v-theme-border));
     border-radius: 5px;
-    background: #f1f5f9;
+    background: rgb(var(--v-theme-icon-preview-background));
 }
 
 .icon-preview-empty {
-    color: var(--ft-muted);
+    color: rgb(var(--v-theme-muted));
     font-size: 10px;
     font-weight: 800;
     line-height: 1;
@@ -356,7 +348,7 @@ body {
 .popup-shell .v-field {
     min-height: 34px;
     border-radius: 6px;
-    background: var(--ft-surface);
+    background: rgb(var(--v-theme-surface));
     box-shadow: none;
     transition:
         box-shadow 160ms ease,
@@ -375,28 +367,28 @@ body {
 }
 
 .popup-shell .v-field__outline {
-    color: var(--ft-border);
+    color: rgb(var(--v-theme-border));
     opacity: 1;
 }
 
 .popup-shell .v-field--focused {
-    background: #ffffff;
-    box-shadow: 0 0 0 2px var(--ft-primary-soft);
+    background: rgb(var(--v-theme-surface));
+    box-shadow: 0 0 0 2px rgb(var(--v-theme-secondary));
 }
 
 .popup-shell .v-field--focused .v-field__outline {
-    color: var(--ft-primary);
+    color: rgb(var(--v-theme-primary));
 }
 
 .popup-shell .v-label,
 .popup-shell .v-field-label {
-    color: var(--ft-muted);
+    color: rgb(var(--v-theme-muted));
     font-size: 12px;
 }
 
 .popup-shell .v-field--focused .v-label,
 .popup-shell .v-field--focused .v-field-label {
-    color: var(--ft-primary);
+    color: rgb(var(--v-theme-primary));
 }
 
 .submit-button {
@@ -411,6 +403,6 @@ body {
 }
 
 .submit-button:hover {
-    background: var(--ft-primary-dark);
+    background: rgb(var(--v-theme-primary-hover));
 }
 </style>
