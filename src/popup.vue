@@ -1,13 +1,13 @@
 <template>
-    <v-container class="popup-shell">
-        <header class="popup-header">
-            <span class="brand-icon-wrap" aria-hidden="true">
-                <img class="brand-icon" src="./assets/icon_32.png" alt="" />
+    <v-container class="popup">
+        <header class="popup__header">
+            <span class="popup__brand-icon-wrap" aria-hidden="true">
+                <img class="popup__brand-icon" src="./assets/icon_32.png" alt="" />
             </span>
             <h1>Fake Tab</h1>
         </header>
 
-        <v-form class="tab-form" @submit.prevent="changeTab">
+        <v-form class="popup__form" @submit.prevent="changeTab">
             <v-text-field
             v-model="originalIcon"
             label="Icon URL"
@@ -15,17 +15,17 @@
             density="compact"
             variant="outlined"
             color="primary"
-            class="tab-field"
+            class="popup__field"
             hide-details>
                 <template #prepend-inner>
-                    <span class="icon-preview" aria-label="Current tab icon">
+                    <span class="popup__icon-preview" aria-label="Current tab icon">
                         <v-img
                         v-if="originalIcon"
                         :src="originalIcon"
                         width="22"
                         height="22"
                         cover />
-                        <span v-else class="icon-preview-empty">FT</span>
+                        <span v-else class="popup__icon-preview-empty">FT</span>
                     </span>
                 </template>
             </v-text-field>
@@ -37,21 +37,21 @@
             variant="outlined"
             color="primary"
             density="compact"
-            class="tab-field"
+            class="popup__field"
             hide-details></v-text-field>
 
-            <label class="persist-control">
+            <label class="popup__persist-control">
                 <input v-model="persistTab" type="checkbox" @change="persistTabTouched = true" />
                 <span>Keep for this tab after refresh</span>
             </label>
 
-            <div class="form-actions">
+            <div class="popup__actions">
                 <v-btn
                 type="button"
                 size="small"
                 variant="outlined"
                 color="primary"
-                class="reset-button"
+                class="popup__reset-button"
                 @click="resetTab">Reset</v-btn>
 
                 <v-btn
@@ -59,7 +59,7 @@
                 size="small"
                 variant="flat"
                 color="primary"
-                class="submit-button">Apply changes</v-btn>
+                class="popup__submit-button">Apply changes</v-btn>
             </div>
         </v-form>
     </v-container>
@@ -274,169 +274,169 @@ body {
         sans-serif;
 }
 
-.popup-shell {
+.popup {
     padding: 0;
     overflow: hidden;
     background: rgb(var(--v-theme-background));
-}
 
-.popup-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 40px;
-    padding: 7px 12px;
-    background: rgb(var(--v-theme-primary));
-    color: rgb(var(--v-theme-on-primary));
-}
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 7px 12px;
+        background: rgb(var(--v-theme-primary));
+        color: rgb(var(--v-theme-on-primary));
 
-.brand-icon-wrap {
-    display: inline-flex;
-    width: 24px;
-    height: 24px;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 24px;
-    border-radius: 6px;
-    background: rgba(var(--v-theme-on-primary), 0.16);
-}
+        h1 {
+            margin: 0;
+            color: inherit;
+            font-size: 14px;
+            font-weight: 650;
+            line-height: 1;
+            letter-spacing: 0;
+        }
+    }
 
-.brand-icon {
-    width: 18px;
-    height: 18px;
-    display: block;
-}
+    &__brand-icon-wrap {
+        display: inline-flex;
+        width: 24px;
+        height: 24px;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 24px;
+        border-radius: 6px;
+        background: rgba(var(--v-theme-on-primary), 0.16);
+    }
 
-.popup-header h1 {
-    margin: 0;
-    color: inherit;
-    font-size: 14px;
-    font-weight: 650;
-    line-height: 1;
-    letter-spacing: 0;
-}
+    &__brand-icon {
+        width: 18px;
+        height: 18px;
+        display: block;
+    }
 
-.tab-form {
-    display: grid;
-    gap: 8px;
-    padding: 12px;
-}
+    &__form {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+    }
 
-.tab-field {
-    min-width: 0;
-}
+    &__field {
+        min-width: 0;
+    }
 
-.persist-control {
-    display: inline-flex;
-    min-height: 28px;
-    align-items: center;
-    gap: 8px;
-    width: fit-content;
-    color: rgb(var(--v-theme-on-surface));
-    cursor: pointer;
-    font-size: 12px;
-    user-select: none;
-}
+    &__persist-control {
+        display: inline-flex;
+        min-height: 28px;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        color: rgb(var(--v-theme-on-surface));
+        cursor: pointer;
+        font-size: 12px;
+        user-select: none;
 
-.persist-control input {
-    width: 15px;
-    height: 15px;
-    margin: 0;
-    accent-color: rgb(var(--v-theme-primary));
-    cursor: pointer;
-}
+        input {
+            width: 15px;
+            height: 15px;
+            margin: 0;
+            accent-color: rgb(var(--v-theme-primary));
+            cursor: pointer;
+        }
+    }
 
-.icon-preview {
-    display: inline-flex;
-    width: 22px;
-    height: 22px;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    margin-left: -2px;
-    margin-right: 0;
-    border: 1px solid rgb(var(--v-theme-border));
-    border-radius: 5px;
-    background: rgb(var(--v-theme-icon-preview-background));
-}
+    &__icon-preview {
+        display: inline-flex;
+        width: 22px;
+        height: 22px;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        margin-left: -2px;
+        margin-right: 0;
+        border: 1px solid rgb(var(--v-theme-border));
+        border-radius: 5px;
+        background: rgb(var(--v-theme-icon-preview-background));
 
-.icon-preview-empty {
-    color: rgb(var(--v-theme-muted));
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 1;
-}
+        .v-img {
+            width: 100%;
+            height: 100%;
+        }
+    }
 
-.icon-preview .v-img {
-    width: 100%;
-    height: 100%;
-}
+    &__icon-preview-empty {
+        color: rgb(var(--v-theme-muted));
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1;
+    }
 
-.form-actions {
-    display: grid;
-    grid-template-columns: minmax(82px, 0.6fr) minmax(0, 1fr);
-    gap: 8px;
-}
+    &__actions {
+        display: grid;
+        grid-template-columns: minmax(82px, 0.6fr) minmax(0, 1fr);
+        gap: 8px;
+    }
 
-.popup-shell .v-field {
-    min-height: 34px;
-    border-radius: 6px;
-    background: rgb(var(--v-theme-surface));
-    box-shadow: none;
-    transition:
-        box-shadow 160ms ease,
-        background-color 160ms ease;
-}
+    &__reset-button,
+    &__submit-button {
+        min-height: 32px;
+        border-radius: 6px;
+        font-weight: 650;
+        letter-spacing: 0;
+        text-transform: none;
+        box-shadow: none;
+        transition:
+            background-color 160ms ease;
+    }
 
-.popup-shell .v-field__input {
-    min-height: 34px;
-    padding-top: 4px;
-    padding-bottom: 4px;
-    font-size: 12px;
-}
+    &__submit-button:hover {
+        background: rgb(var(--v-theme-primary-hover));
+    }
 
-.popup-shell .v-field__prepend-inner {
-    padding-top: 5px;
-}
+    .v-field {
+        min-height: 34px;
+        border-radius: 6px;
+        background: rgb(var(--v-theme-surface));
+        box-shadow: none;
+        transition:
+            box-shadow 160ms ease,
+            background-color 160ms ease;
+    }
 
-.popup-shell .v-field__outline {
-    color: rgb(var(--v-theme-border));
-    opacity: 1;
-}
+    .v-field__input {
+        min-height: 34px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+        font-size: 12px;
+    }
 
-.popup-shell .v-field--focused {
-    background: rgb(var(--v-theme-surface));
-    box-shadow: 0 0 0 2px rgb(var(--v-theme-secondary));
-}
+    .v-field__prepend-inner {
+        padding-top: 5px;
+    }
 
-.popup-shell .v-field--focused .v-field__outline {
-    color: rgb(var(--v-theme-primary));
-}
+    .v-field__outline {
+        color: rgb(var(--v-theme-border));
+        opacity: 1;
+    }
 
-.popup-shell .v-label,
-.popup-shell .v-field-label {
-    color: rgb(var(--v-theme-muted));
-    font-size: 12px;
-}
+    .v-field--focused {
+        background: rgb(var(--v-theme-surface));
+        box-shadow: 0 0 0 2px rgb(var(--v-theme-secondary));
 
-.popup-shell .v-field--focused .v-label,
-.popup-shell .v-field--focused .v-field-label {
-    color: rgb(var(--v-theme-primary));
-}
+        .v-field__outline {
+            color: rgb(var(--v-theme-primary));
+        }
 
-.reset-button,
-.submit-button {
-    min-height: 32px;
-    border-radius: 6px;
-    font-weight: 650;
-    letter-spacing: 0;
-    text-transform: none;
-    box-shadow: none;
-    transition:
-        background-color 160ms ease;
-}
+        .v-label,
+        .v-field-label {
+            color: rgb(var(--v-theme-primary));
+        }
+    }
 
-.submit-button:hover {
-    background: rgb(var(--v-theme-primary-hover));
+    .v-label,
+    .v-field-label {
+        color: rgb(var(--v-theme-muted));
+        font-size: 12px;
+    }
 }
 </style>
