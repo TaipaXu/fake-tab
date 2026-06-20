@@ -45,13 +45,22 @@
                 <span>Keep after refresh</span>
             </label>
 
-            <v-btn
-            type="submit"
-            block
-            size="small"
-            variant="flat"
-            color="primary"
-            class="submit-button">Apply changes</v-btn>
+            <div class="form-actions">
+                <v-btn
+                type="button"
+                size="small"
+                variant="outlined"
+                color="primary"
+                class="reset-button"
+                @click="resetTab">Reset</v-btn>
+
+                <v-btn
+                type="submit"
+                size="small"
+                variant="flat"
+                color="primary"
+                class="submit-button">Apply changes</v-btn>
+            </div>
         </v-form>
     </v-container>
 </template>
@@ -66,12 +75,15 @@ import {
     getPersistableTabOrigin,
     getPersistedTabChange,
     removePersistedTabChange,
+    resetChangeInTab,
     setPersistedTabChange,
     type TabChange,
 } from './tabChange';
 
 const originalIcon = ref<string>();
 const originalTitle = ref<string>();
+const pageIcon = ref<string>();
+const pageTitle = ref<string>();
 const persistTab = ref(false);
 const persistTabTouched = ref(false);
 const activeTabId = ref<number>();
@@ -91,6 +103,20 @@ const getFormTabChange = () => {
 
     if (typeof originalIcon.value === 'string') {
         change.icon = originalIcon.value;
+    }
+
+    return change;
+};
+
+const getPageTabChange = () => {
+    const change: TabChange = {};
+
+    if (typeof pageTitle.value === 'string') {
+        change.title = pageTitle.value;
+    }
+
+    if (typeof pageIcon.value === 'string') {
+        change.icon = pageIcon.value;
     }
 
     return change;
@@ -176,6 +202,8 @@ const getTabInfo = async () => {
 
     const pageInfo = await getPageTabInfo(tabId, currentTab);
 
+    pageTitle.value = pageInfo.title;
+    pageIcon.value = pageInfo.icon;
     originalTitle.value = pageInfo.title;
     originalIcon.value = pageInfo.icon;
 
@@ -208,7 +236,7 @@ const changeTab = async () => {
     const shouldPersist =
         persistTab.value && (await requestPersistentTabAccess(activeTabOrigin.value));
 
-    await applyChangeToTab(tabId, change);
+    await applyChangeToTab(tabId, change, getPageTabChange());
 
     if (shouldPersist) {
         await setPersistedTabChange(tabId, {
@@ -219,6 +247,20 @@ const changeTab = async () => {
     }
 
     await removePersistedTabChange(tabId).catch(() => undefined);
+};
+
+const resetTab = async () => {
+    const tabId = activeTabId.value;
+
+    if (tabId === undefined) {
+        return;
+    }
+
+    await removePersistedTabChange(tabId).catch(() => undefined);
+    persistTab.value = false;
+    persistTabTouched.value = false;
+    await resetChangeInTab(tabId).catch(() => false);
+    await getTabInfo();
 };
 </script>
 
@@ -345,6 +387,12 @@ body {
     height: 100%;
 }
 
+.form-actions {
+    display: grid;
+    grid-template-columns: minmax(82px, 0.6fr) minmax(0, 1fr);
+    gap: 8px;
+}
+
 .popup-shell .v-field {
     min-height: 34px;
     border-radius: 6px;
@@ -391,6 +439,7 @@ body {
     color: rgb(var(--v-theme-primary));
 }
 
+.reset-button,
 .submit-button {
     min-height: 32px;
     border-radius: 6px;

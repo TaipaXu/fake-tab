@@ -7,19 +7,22 @@ import {
     removePersistedTabChange,
 } from './tabChange';
 
-const reapplyPersistedTabChange = async (tabId: number, url?: string) => {
+const reapplyPersistedTabChange = async (tabId: number, tab: browser.Tabs.Tab) => {
     const change = await getPersistedTabChange(tabId);
 
     if (!change) {
         return;
     }
 
-    if (!isPersistedTabChangeForUrl(change, url)) {
+    if (!isPersistedTabChangeForUrl(change, tab.url)) {
         await removePersistedTabChange(tabId);
         return;
     }
 
-    await applyChangeToTab(tabId, change);
+    await applyChangeToTab(tabId, change, {
+        icon: tab.favIconUrl,
+        title: tab.title,
+    });
 };
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -27,7 +30,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         return;
     }
 
-    void reapplyPersistedTabChange(tabId, tab.url).catch(() => undefined);
+    void reapplyPersistedTabChange(tabId, tab).catch(() => undefined);
 });
 
 browser.tabs.onRemoved.addListener((tabId) => {

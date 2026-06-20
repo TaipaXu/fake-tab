@@ -140,12 +140,47 @@ export const isPersistedTabChangeForUrl = (change: PersistedTabChange, url?: str
     return origin === undefined || origin === change.origin;
 };
 
-export const applyTabChange = (change: unknown) => {
+export const applyTabChange = (change: unknown, fallbackOriginal?: TabChange) => {
     if (typeof change !== 'object' || change === null || Array.isArray(change)) {
         return;
     }
 
+    const originalTabStateKey = '__fakeTabOriginalState';
+    type LinkAttributeSnapshot = Array<[string, string]>;
+    type OriginalTabState = {
+        iconLinks: LinkAttributeSnapshot[];
+        title: string;
+    };
+    type FakeTabDocument = Document & {
+        [originalTabStateKey]?: OriginalTabState;
+    };
+    const fakeTabDocument = document as FakeTabDocument;
+    const captureOriginalTabState = () => {
+        if (fakeTabDocument[originalTabStateKey]) {
+            return;
+        }
+
+        const iconLinks = Array.from(
+            document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]'),
+            (link) =>
+                Array.from(link.attributes, ({ name, value }) => [name, value] as [string, string]),
+        );
+
+        if (iconLinks.length === 0 && fallbackOriginal?.icon) {
+            iconLinks.push([
+                ['rel', 'icon'],
+                ['href', fallbackOriginal.icon],
+            ]);
+        }
+
+        fakeTabDocument[originalTabStateKey] = {
+            iconLinks,
+            title: document.title || fallbackOriginal?.title || '',
+        };
+    };
     const tabChange = change as { icon?: unknown; title?: unknown };
+
+    captureOriginalTabState();
 
     if (typeof tabChange.title === 'string') {
         document.title = tabChange.title;
@@ -167,12 +202,82 @@ export const applyTabChange = (change: unknown) => {
     document.head.appendChild(link);
 };
 
-export const applyChangeToTab = async (tabId: number, change: TabChange) => {
+export const resetTabChange = () => {
+    const originalTabStateKey = '__fakeTabOriginalState';
+    type LinkAttributeSnapshot = Array<[string, string]>;
+    type OriginalTabState = {
+        iconLinks: LinkAttributeSnapshot[];
+        title: string;
+    };
+    type FakeTabDocument = Document & {
+        [originalTabStateKey]?: OriginalTabState;
+    };
+    const fakeTabDocument = document as FakeTabDocument;
+    const originalState = fakeTabDocument[originalTabStateKey];
+    const createIconLink = (attributes: LinkAttributeSnapshot) => {
+        const link = document.createElement('link');
+
+        for (const [name, value] of attributes) {
+            link.setAttribute(name, value);
+        }
+
+        return link;
+    };
+
+    if (!originalState) {
+        return false;
+    }
+
+    document.title = originalState.title;
+
+    for (const iconLink of document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')) {
+        iconLink.remove();
+    }
+
+    for (const iconLinkAttributes of originalState.iconLinks) {
+        document.head.appendChild(createIconLink(iconLinkAttributes));
+    }
+
+    delete fakeTabDocument[originalTabStateKey];
+
+    return true;
+};
+
+const getSerializableTabChange = (change?: TabChange) => {
+    const serializableChange: TabChange = {};
+
+    if (typeof change?.title === 'string') {
+        serializableChange.title = change.title;
+    }
+
+    if (typeof change?.icon === 'string') {
+        serializableChange.icon = change.icon;
+    }
+
+    return serializableChange;
+};
+
+export const applyChangeToTab = async (
+    tabId: number,
+    change: TabChange,
+    fallbackOriginal?: TabChange,
+) => {
     await browser.scripting.executeScript({
         target: {
             tabId,
         },
         func: applyTabChange,
-        args: [change],
+        args: [change, getSerializableTabChange(fallbackOriginal)],
     });
+};
+
+export const resetChangeInTab = async (tabId: number) => {
+    const [resetResult] = await browser.scripting.executeScript({
+        target: {
+            tabId,
+        },
+        func: resetTabChange,
+    });
+
+    return Boolean(resetResult?.result);
 };
