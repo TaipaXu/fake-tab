@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Fake Tab",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Modify browser tab page icon and title, hide the website you are currently browsing",
     "icons": {
         "16": "assets/icon_16.png",

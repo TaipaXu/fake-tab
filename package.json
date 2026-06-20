@@ -1,6 +1,6 @@
 {
     "name": "fake-tab",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "private": true,
     "description": "Modify browser tab page icon and title, hide the website you are currently browsing.",
     "bugs": "https://github.com/TaipaXu/fake-tab/issues",
