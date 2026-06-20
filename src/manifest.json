@@ -17,5 +17,10 @@
         "default_title": "Fake Title",
         "default_popup": "popup.html"
     },
-    "permissions": ["activeTab", "scripting"]
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "permissions": ["activeTab", "scripting", "storage"],
+    "optional_host_permissions": ["<all_urls>"]
 }

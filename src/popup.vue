@@ -40,6 +40,11 @@
             class="tab-field"
             hide-details></v-text-field>
 
+            <label class="persist-control">
+                <input v-model="persistTab" type="checkbox" @change="persistTabTouched = true" />
+                <span>Keep after refresh</span>
+            </label>
+
             <v-btn
             type="submit"
             block
@@ -55,81 +60,165 @@
 import { ref } from 'vue';
 import browser from 'webextension-polyfill';
 
-type ChangeTabMessage = {
-    icon?: string;
-    title?: string;
-    type: 'changeTab';
-};
+import {
+    applyChangeToTab,
+    getHostPermissionPattern,
+    getPersistableTabOrigin,
+    getPersistedTabChange,
+    removePersistedTabChange,
+    setPersistedTabChange,
+    type TabChange,
+} from './tabChange';
 
 const originalIcon = ref<string>();
 const originalTitle = ref<string>();
+const persistTab = ref(false);
+const persistTabTouched = ref(false);
+const activeTabId = ref<number>();
+const activeTabOrigin = ref<string>();
+
+type PageTabInfo = {
+    icon?: string;
+    title?: string;
+};
+
+const getFormTabChange = () => {
+    const change: TabChange = {};
+
+    if (typeof originalTitle.value === 'string') {
+        change.title = originalTitle.value;
+    }
+
+    if (typeof originalIcon.value === 'string') {
+        change.icon = originalIcon.value;
+    }
+
+    return change;
+};
+
+const readPageTabInfo = (): PageTabInfo => {
+    const iconSelector = [
+        'link[rel~="icon"]',
+        'link[rel="shortcut icon"]',
+        'link[rel="apple-touch-icon"]',
+    ].join(',');
+    const icon = document.querySelector<HTMLLinkElement>(iconSelector)?.href;
+    const info: PageTabInfo = {};
+
+    if (document.title) {
+        info.title = document.title;
+    }
+
+    if (icon) {
+        info.icon = icon;
+    }
+
+    return info;
+};
+
+const getPageTabInfo = async (tabId: number, currentTab: browser.Tabs.Tab) => {
+    const tabInfo: PageTabInfo = {};
+
+    if (currentTab.title) {
+        tabInfo.title = currentTab.title;
+    }
+
+    if (currentTab.favIconUrl) {
+        tabInfo.icon = currentTab.favIconUrl;
+    }
+
+    try {
+        const [pageInfo] = await browser.scripting.executeScript({
+            target: {
+                tabId,
+            },
+            func: readPageTabInfo,
+        });
+        const result = pageInfo?.result as PageTabInfo | undefined;
+
+        return {
+            title: tabInfo.title ?? result?.title,
+            icon: tabInfo.icon ?? result?.icon,
+        };
+    } catch {
+        return tabInfo;
+    }
+};
+
+const requestPersistentTabAccess = async (origin?: string) => {
+    const originPattern = getHostPermissionPattern(origin);
+
+    if (!originPattern) {
+        return false;
+    }
+
+    const permission = {
+        origins: [originPattern],
+    };
+
+    try {
+        return await browser.permissions.request(permission);
+    } catch {
+        return false;
+    }
+};
 
 const getTabInfo = async () => {
     const [currentTab] = await browser.tabs.query({ active: true, currentWindow: true });
+    const tabId = currentTab?.id;
 
-    if (!currentTab) {
+    if (!currentTab || tabId === undefined) {
         return;
     }
 
-    originalTitle.value = currentTab.title;
-    originalIcon.value = currentTab.favIconUrl;
+    activeTabId.value = tabId;
+    activeTabOrigin.value = getPersistableTabOrigin(currentTab.url);
+
+    const pageInfo = await getPageTabInfo(tabId, currentTab);
+
+    originalTitle.value = pageInfo.title;
+    originalIcon.value = pageInfo.icon;
+
+    try {
+        const persistedChange = await getPersistedTabChange(tabId);
+
+        if (!persistTabTouched.value) {
+            persistTab.value = Boolean(persistedChange);
+        }
+
+        originalTitle.value = persistedChange?.title ?? pageInfo.title;
+        originalIcon.value = persistedChange?.icon ?? pageInfo.icon;
+    } catch {
+        if (!persistTabTouched.value) {
+            persistTab.value = false;
+        }
+    }
 };
 
-getTabInfo();
+void getTabInfo();
 
 const changeTab = async () => {
-    const [currentTab] = await browser.tabs.query({ active: true, currentWindow: true });
-    const tabId = currentTab?.id;
+    const tabId = activeTabId.value;
 
     if (tabId === undefined) {
         return;
     }
 
-    await browser.scripting.executeScript({
-        target: {
-            tabId,
-        },
-        func: executeChangeTab,
-    });
-    await browser.tabs.sendMessage(tabId, {
-        type: 'changeTab',
-        title: originalTitle.value,
-        icon: originalIcon.value,
-    });
-};
+    const change = getFormTabChange();
+    const shouldPersist =
+        persistTab.value && (await requestPersistentTabAccess(activeTabOrigin.value));
 
-const executeChangeTab = () => {
-    console.log('change tab');
+    await applyChangeToTab(tabId, change);
 
-    const injected = globalThis.injected;
-    if (injected) {
+    if (shouldPersist) {
+        await setPersistedTabChange(tabId, {
+            ...change,
+            origin: activeTabOrigin.value,
+        });
         return;
     }
-    globalThis.injected = true;
 
-    chrome.runtime.onMessage.addListener((message: unknown) => {
-        const changeMessage = message as ChangeTabMessage;
-
-        if (changeMessage.type !== 'changeTab') {
-            return;
-        }
-
-        if (changeMessage.title) {
-            document.title = changeMessage.title;
-        }
-
-        if (!changeMessage.icon) {
-            return;
-        }
-
-        const link = document.createElement('link');
-        link.rel = 'icon';
-        link.type = 'image/x-icon';
-        link.href = changeMessage.icon;
-
-        document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.remove();
-        document.head.appendChild(link);
-    });
+    await removePersistedTabChange(tabId).catch(() => undefined);
 };
 </script>
 
@@ -216,6 +305,26 @@ body {
 
 .tab-field {
     min-width: 0;
+}
+
+.persist-control {
+    display: inline-flex;
+    min-height: 28px;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    color: var(--ft-text);
+    cursor: pointer;
+    font-size: 12px;
+    user-select: none;
+}
+
+.persist-control input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--ft-primary);
+    cursor: pointer;
 }
 
 .icon-preview {
