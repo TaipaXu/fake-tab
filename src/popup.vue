@@ -1,12 +1,13 @@
 <template>
-    <v-container>
+    <v-container class="popup-shell">
         <v-row>
             <v-col cols="12">
                 <v-text-field
                 v-model="originalIcon"
                 label="Icon"
                 density="compact"
-                variant="solo"
+                variant="outlined"
+                color="primary"
                 hide-details>
                     <template #prepend-inner>
                         <v-img
@@ -21,7 +22,8 @@
                 <v-text-field
                 v-model="originalTitle"
                 label="Title"
-                variant="solo"
+                variant="outlined"
+                color="primary"
                 density="compact"
                 hide-details></v-text-field>
             </v-col>
@@ -32,8 +34,8 @@
             block
             size="small"
             variant="elevated"
-            color="success"
-            class="mt-2"
+            color="primary"
+            class="submit-button mt-2"
             @click="changeTab">Submit</v-btn>
         </v-row>
     </v-container>
@@ -122,7 +124,52 @@ const executeChangeTab = () => {
 </script>
 
 <style lang="scss">
+:root {
+    color-scheme: light;
+    --ft-primary: #f44336;
+    --ft-primary-soft: #ffcdd2;
+    --ft-background: #ffffff;
+    --ft-surface: #ffffff;
+    --ft-text: #2b1111;
+}
+
+html,
+body {
+    margin: 0;
+    background: var(--ft-background);
+}
+
 #app {
     width: 300px;
+    background: var(--ft-background);
+    color: var(--ft-text);
+}
+
+.popup-shell {
+    padding: 16px;
+}
+
+.popup-shell .v-row {
+    margin: -6px;
+}
+
+.popup-shell .v-col {
+    padding: 6px;
+}
+
+.popup-shell .v-field {
+    border-radius: 8px;
+    background: var(--ft-surface);
+    box-shadow: 0 1px 2px rgb(244 67 54 / 8%);
+}
+
+.popup-shell .v-field--focused {
+    box-shadow: 0 0 0 3px var(--ft-primary-soft);
+}
+
+.submit-button {
+    min-height: 34px;
+    border-radius: 8px;
+    box-shadow: 0 6px 14px rgb(244 67 54 / 20%);
 }
 </style>
