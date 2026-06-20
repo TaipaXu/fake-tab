@@ -40,14 +40,25 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import browser from 'webextension-polyfill';
 
-const originalIcon: Ref<string | undefined> = ref();
-const originalTitle: Ref<string | undefined> = ref();
+type ChangeTabMessage = {
+    icon?: string;
+    title?: string;
+    type: 'changeTab';
+};
+
+const originalIcon = ref<string>();
+const originalTitle = ref<string>();
 
 const getTabInfo = async () => {
-    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-    const currentTab = tabs[0];
+    const [currentTab] = await browser.tabs.query({ active: true, currentWindow: true });
+
+    if (!currentTab) {
+        return;
+    }
+
     originalTitle.value = currentTab.title;
     originalIcon.value = currentTab.favIconUrl;
 };
@@ -55,25 +66,24 @@ const getTabInfo = async () => {
 getTabInfo();
 
 const changeTab = async () => {
-    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-    const currentTab = tabs[0];
-    const tabId: number | undefined = currentTab?.id;
-    if (tabId) {
-        browser.scripting.executeScript({
-            target: {
-                tabId,
-            },
-            func: executeChangeTab
-        });
-        browser.tabs.sendMessage(
-            tabId,
-            {
-                type: 'changeTab',
-                title: originalTitle.value,
-                icon: originalIcon.value
-            }
-        );
+    const [currentTab] = await browser.tabs.query({ active: true, currentWindow: true });
+    const tabId = currentTab?.id;
+
+    if (tabId === undefined) {
+        return;
     }
+
+    await browser.scripting.executeScript({
+        target: {
+            tabId,
+        },
+        func: executeChangeTab,
+    });
+    await browser.tabs.sendMessage(tabId, {
+        type: 'changeTab',
+        title: originalTitle.value,
+        icon: originalIcon.value,
+    });
 };
 
 const executeChangeTab = () => {
@@ -85,24 +95,28 @@ const executeChangeTab = () => {
     }
     globalThis.injected = true;
 
-    chrome.runtime.onMessage.addListener((message: string) => {
-        if (message.type === 'changeTab') {
-            document.title = message.title;
+    chrome.runtime.onMessage.addListener((message: unknown) => {
+        const changeMessage = message as ChangeTabMessage;
 
-            var link = document.createElement('link');
-            link.rel = 'icon';
-            link.type = 'image/x-icon';
-            link.href = message.icon;
-
-            var head = document.querySelector('head');
-
-            var oldLink = document.querySelector('link[rel="icon"]');
-            if (oldLink) {
-                head.removeChild(oldLink);
-            }
-
-            head.appendChild(link);
+        if (changeMessage.type !== 'changeTab') {
+            return;
         }
+
+        if (changeMessage.title) {
+            document.title = changeMessage.title;
+        }
+
+        if (!changeMessage.icon) {
+            return;
+        }
+
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/x-icon';
+        link.href = changeMessage.icon;
+
+        document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.remove();
+        document.head.appendChild(link);
     });
 };
 </script>
