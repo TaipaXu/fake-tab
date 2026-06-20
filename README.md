@@ -1,5 +1,7 @@
 # Fake Tab
 
+English | [中文](./README_ZH.md)
+
 Modify browser tab page icon and title, hide the website you are currently browsing.
 
 ## Installation
