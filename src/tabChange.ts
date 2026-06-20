@@ -122,14 +122,6 @@ export const getPersistableTabOrigin = (url?: string) => {
     }
 };
 
-export const getHostPermissionPattern = (origin?: string) => {
-    if (!origin) {
-        return undefined;
-    }
-
-    return `${origin}/*`;
-};
-
 export const isPersistedTabChangeForUrl = (change: PersistedTabChange, url?: string) => {
     if (!change.origin) {
         return true;

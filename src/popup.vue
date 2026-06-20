@@ -71,7 +71,6 @@ import browser from 'webextension-polyfill';
 
 import {
     applyChangeToTab,
-    getHostPermissionPattern,
     getPersistableTabOrigin,
     getPersistedTabChange,
     removePersistedTabChange,
@@ -176,24 +175,6 @@ const getPageTabInfo = async (tabId: number, currentTab: browser.Tabs.Tab) => {
     }
 };
 
-const requestPersistentTabAccess = async (origin?: string) => {
-    const originPattern = getHostPermissionPattern(origin);
-
-    if (!originPattern) {
-        return false;
-    }
-
-    const permission = {
-        origins: [originPattern],
-    };
-
-    try {
-        return await browser.permissions.request(permission);
-    } catch {
-        return false;
-    }
-};
-
 const getTabInfo = async () => {
     const [currentTab] = await browser.tabs.query({ active: true, currentWindow: true });
     const tabId = currentTab?.id;
@@ -238,8 +219,7 @@ const changeTab = async () => {
     }
 
     const change = getFormTabChange();
-    const shouldPersist =
-        persistTab.value && (await requestPersistentTabAccess(activeTabOrigin.value));
+    const shouldPersist = persistTab.value && Boolean(activeTabOrigin.value);
 
     await applyChangeToTab(tabId, change, getPageTabChange());
 
