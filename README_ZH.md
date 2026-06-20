@@ -4,6 +4,8 @@
 
 修改浏览器标签页图标和标题，隐藏你当前正在浏览的网站。
 
+![Fake Tab](app.png)
+
 ## 安装
 
 [Chrome](https://chrome.google.com/webstore/detail/fake-tab/dpkljoiigkodeceffpaoiloiagihckfg)

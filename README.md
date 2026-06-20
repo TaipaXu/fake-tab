@@ -4,6 +4,8 @@ English | [中文](./README_ZH.md)
 
 Modify browser tab page icon and title, hide the website you are currently browsing.
 
+![Fake Tab](app.png)
+
 ## Installation
 
 [Chrome](https://chrome.google.com/webstore/detail/fake-tab/dpkljoiigkodeceffpaoiloiagihckfg)
