@@ -42,7 +42,7 @@
 
             <label class="persist-control">
                 <input v-model="persistTab" type="checkbox" @change="persistTabTouched = true" />
-                <span>Keep after refresh</span>
+                <span>Keep for this tab after refresh</span>
             </label>
 
             <div class="form-actions">
